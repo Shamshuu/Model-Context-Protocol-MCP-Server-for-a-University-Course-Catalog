@@ -1,0 +1,1 @@
+# Model-Context-Protocol-MCP-Server-for-a-University-Course-Catalog
