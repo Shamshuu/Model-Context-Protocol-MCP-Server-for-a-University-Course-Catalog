@@ -1,52 +1,51 @@
 # Commands To Run: University Course Catalog MCP Server
 
-This guide contains complete commands to run, test, and interact with the MCP Server from **Git Bash**, **macOS Terminal**, or **Linux Shell**.
+This guide provides step-by-step instructions with **Git Bash `curl` commands** to run and verify every single functionality of the University Course Catalog MCP Server from scratch to end.
 
 ---
 
-## 1. Quick Start with Docker (Recommended)
+## Step 1: Start the Application with Docker Compose
 
-### Start Server
+Open **Git Bash** in the project root directory and run:
+
 ```bash
 docker compose up --build -d
 ```
 *(or `docker-compose up --build -d`)*
 
-### Verify Container Health
+### Verify Container Health Status
 ```bash
 docker compose ps
 ```
-*Expected status:* `Up ... (healthy)`
-
-### Run Automated Demo Script
-A pre-configured verification script executes all `curl` commands below in sequence:
-```bash
-./scripts/demo_curl.sh
+**Expected Output:**
+```text
+NAME                            IMAGE                                              STATUS
+university-catalog-mcp-server   model-context-protocol-mcp-server...               Up About a minute (healthy)
 ```
 
-### Stop Server
-```bash
-docker compose down
-```
+> **Automated One-Click Demo:** You can also run the bundled demo script anytime in Git Bash:
+> ```bash
+> ./scripts/demo_curl.sh
+> ```
 
 ---
 
-## 2. Healthcheck & Service Discovery
+## Step 2: Healthcheck & Service Discovery
 
-### Health Check Endpoint
+### 1. Verify Healthcheck Endpoint
 ```bash
 curl -s http://localhost:8080/health
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 {"status":"healthy","service":"mcp-server","version":"1.0.0"}
 ```
 
-### Service Root & Discovery
+### 2. Root Service Discovery
 ```bash
 curl -s http://localhost:8080/
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 {
   "name": "University Course Catalog MCP Server",
@@ -65,25 +64,24 @@ curl -s http://localhost:8080/
 }
 ```
 
-### List All Registered Tools
+### 3. Inspect All Registered Tools
 ```bash
 curl -s http://localhost:8080/tools
 ```
 
 ---
 
-## 3. Testing MCP Tools via curl
+## Step 3: Test MCP Tools
 
 ### Tool 1: `search_courses`
-Searches courses matching a query string, with optional department filter.
 
-#### Case A: Matching query
+**Case A — Keyword Search (`"Introduction"`):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/search_courses \
   -H "Content-Type: application/json" \
   -d '{"query": "Introduction"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 [
   {"course_code":"CS101","title":"Introduction to Programming","credits":4},
@@ -92,13 +90,13 @@ curl -s -X POST http://localhost:8080/tools/search_courses \
 ]
 ```
 
-#### Case B: Filtered by department code
+**Case B — Keyword + Department Filter (`query="Programming", department_code="CS"`):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/search_courses \
   -H "Content-Type: application/json" \
   -d '{"query": "Programming", "department_code": "CS"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 [
   {"course_code":"CS101","title":"Introduction to Programming","credits":4},
@@ -106,13 +104,13 @@ curl -s -X POST http://localhost:8080/tools/search_courses \
 ]
 ```
 
-#### Case C: Non-existent query (returns empty list `[]`)
+**Case C — Non-Existent Query (Returns empty array `[]`):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/search_courses \
   -H "Content-Type: application/json" \
   -d '{"query": "QuantumWarpDrive"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 []
 ```
@@ -120,31 +118,33 @@ curl -s -X POST http://localhost:8080/tools/search_courses \
 ---
 
 ### Tool 2: `get_prerequisites`
-Retrieves direct prerequisite courses for a course code.
 
-#### Case A: Course with prerequisites (`CS102` requires `CS101`)
+**Case A — Course with Prerequisites (`CS102` requires `CS101`):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/get_prerequisites \
   -H "Content-Type: application/json" \
   -d '{"course_code": "CS102"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 {
   "course_code": "CS102",
   "prerequisites": [
-    {"course_code": "CS101", "title": "Introduction to Programming"}
+    {
+      "course_code": "CS101",
+      "title": "Introduction to Programming"
+    }
   ]
 }
 ```
 
-#### Case B: Course with NO prerequisites (`CS101`)
+**Case B — Course with NO Prerequisites (`CS101`):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/get_prerequisites \
   -H "Content-Type: application/json" \
   -d '{"course_code": "CS101"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 {
   "course_code": "CS101",
@@ -155,15 +155,14 @@ curl -s -X POST http://localhost:8080/tools/get_prerequisites \
 ---
 
 ### Tool 3: `lookup_instructor`
-Finds faculty contact details and department affiliation.
 
-#### Case A: Valid instructor (`Dr. Alan Turing`)
+**Case A — Valid Instructor (`"Dr. Alan Turing"`):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/lookup_instructor \
   -H "Content-Type: application/json" \
   -d '{"instructor_name": "Dr. Alan Turing"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 {
   "name": "Dr. Alan Turing",
@@ -172,13 +171,13 @@ curl -s -X POST http://localhost:8080/tools/lookup_instructor \
 }
 ```
 
-#### Case B: Non-existent instructor (structured error)
+**Case B — Non-Existent Instructor (Structured Error):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/lookup_instructor \
   -H "Content-Type: application/json" \
   -d '{"instructor_name": "Unknown Professor"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 {
   "error": "Instructor not found"
@@ -188,15 +187,14 @@ curl -s -X POST http://localhost:8080/tools/lookup_instructor \
 ---
 
 ### Tool 4: `get_prerequisite_graph`
-Builds the full multi-level dependency graph using NetworkX.
 
-#### Multi-level dependency chain for `CS301` (`CS101 -> CS102 -> CS201 -> CS301`)
+**Multi-Level Dependency Chain for `CS301` (`CS101 -> CS102 -> CS201 -> CS301`):**
 ```bash
 curl -s -X POST http://localhost:8080/tools/get_prerequisite_graph \
   -H "Content-Type: application/json" \
   -d '{"course_code": "CS301"}'
 ```
-*Expected Output:*
+**Expected Output:**
 ```json
 {
   "nodes": [
@@ -215,16 +213,17 @@ curl -s -X POST http://localhost:8080/tools/get_prerequisite_graph \
 
 ---
 
-## 4. Testing MCP Resources via curl
+## Step 4: Test MCP Contextual Resources
 
 ### Resource 1: `course_descriptions`
 ```bash
 curl -s http://localhost:8080/resources/course_descriptions
 ```
-*Output preview:*
-```
-[CS101] Introduction to Programming: A foundational course on programming principles...
-[CS102] Data Structures and Algorithms: Study of fundamental data structures...
+**Expected Output (Formatted Directory):**
+```text
+[CS101] Introduction to Programming: A foundational course on programming principles, problem-solving, and algorithmic thinking using Python.
+[CS102] Data Structures and Algorithms: Study of fundamental data structures such as lists, stacks, queues, trees, graphs, and algorithm design and analysis.
+[CS201] Systems Programming: Covers low-level programming concepts, memory management, operating system interfaces, and concurrency in C/C++.
 ...
 ```
 
@@ -232,8 +231,8 @@ curl -s http://localhost:8080/resources/course_descriptions
 ```bash
 curl -s http://localhost:8080/resources/department_directory
 ```
-*Output:*
-```
+**Expected Output:**
+```text
 Computer Science (CS)
 Electrical Engineering (EE)
 Mathematics (MATH)
@@ -242,43 +241,89 @@ Physics (PHYS)
 
 ---
 
-## 5. Testing MCP Prompt Template via curl
+## Step 5: Test MCP Prompt Template
 
 ### Prompt: `course_comparison_template`
 ```bash
 curl -s http://localhost:8080/prompts/course_comparison_template
 ```
-*Output:*
-```
+**Expected Output (Contains Placeholders `{{course_code_1}}` & `{{course_code_2}}`):**
+```text
 Create a table comparing the following two courses: {{course_code_1}} and {{course_code_2}}. Include columns for Title, Credits, Description, and Prerequisites.
 ```
 
 ---
 
-## 6. Testing Native MCP JSON-RPC 2.0 via curl
+## Step 6: Test Native MCP JSON-RPC 2.0 Protocol
 
-### Initialize MCP Session
+### 1. MCP Initialization
 ```bash
 curl -s -X POST http://localhost:8080/ \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
 ```
+**Expected Output:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "tools": {"listChanged": true},
+      "resources": {"subscribe": true, "listChanged": true},
+      "prompts": {"listChanged": true}
+    },
+    "serverInfo": {
+      "name": "University Course Catalog Server",
+      "version": "1.0.0"
+    }
+  }
+}
+```
 
-### Call Tool via JSON-RPC
+### 2. Call Tool via JSON-RPC
 ```bash
 curl -s -X POST http://localhost:8080/ \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search_courses","arguments":{"query":"Calculus"}}}'
 ```
+**Expected Output:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\n  \"course_code\": \"MATH101\",\n  \"title\": \"Introduction to Calculus\",\n  \"credits\": 4\n}"
+      }
+    ],
+    "isError": false
+  }
+}
+```
 
 ---
 
-## 7. Local Testing without Docker
+## Step 7: Run Full Pytest Suite
+
+To run all 39 automated unit, integration, and MCP protocol tests locally:
 
 ```bash
-# Activate virtual environment
 source .venv/bin/activate
-
-# Run full pytest test suite (39 tests)
 pytest -v
+```
+**Expected Result:**
+```text
+============================== 39 passed in 0.13s ==============================
+```
+
+---
+
+## Step 8: Stop the Application
+
+```bash
+docker compose down
 ```
